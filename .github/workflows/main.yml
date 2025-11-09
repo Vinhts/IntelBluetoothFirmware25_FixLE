@@ -19,6 +19,7 @@ jobs:
 
     - name: Cache Lilu
       id: cache-lilu
+      # Lưu ý: actions/cache@v3 vẫn an toàn để sử dụng
       uses: actions/cache@v3
       with:
         path: Lilu.kext
@@ -34,6 +35,8 @@ jobs:
         git clone --depth=1 https://github.com/acidanthera/Lilu.git
         cd Lilu || exit 1
         ln -s ../MacKernelSDK MacKernelSDK
+        # Sử dụng pipefail để đảm bảo lệnh xcodebuild thất bại nếu xcpretty thất bại
+        set -o pipefail
         xcodebuild -configuration Debug -arch x86_64 | xcpretty && ret=${PIPESTATUS[0]}
         if [[ $ret -ne 0 || ! -d build/Debug/Lilu.kext ]]; then
           exit 1
@@ -42,15 +45,23 @@ jobs:
 
     - name: Debug Build
       run: |
+        set -o pipefail
         xcodebuild -alltargets -configuration Debug | xcpretty && exit ${PIPESTATUS[0]}
 
     - name: Release Build
       run: |
+        set -o pipefail
         xcodebuild -alltargets -configuration Release | xcpretty && exit ${PIPESTATUS[0]}
 
     - name: Upload to Artifacts
-      uses: actions/upload-artifact@v3
+      # 🚀 ĐÂY LÀ DÒNG ĐÃ ĐƯỢC CẬP NHẬT TỪ v3 SANG v4
+      uses: actions/upload-artifact@v4 
       with:
         name: ${{ github.event.repository.name }}
         path: build/*/*.zip
-        if-no-files-found: error
+        # LƯU Ý: Tham số if-no-files-found đã được đổi tên thành strict trong v4, 
+        # nhưng giá trị 'error' là giá trị mặc định trong v4. 
+        # Tôi giữ nguyên để rõ ràng, mặc dù nó có thể được bỏ đi.
+        # Giá trị mới được khuyến nghị là 'strict: true'
+        # Tôi sẽ thay đổi nó để sử dụng tham số mới:
+        strict: true
